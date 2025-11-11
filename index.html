@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>同一パターン複製ツール</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .drop-area {
+            border: 3px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .drop-area:hover {
+            border-color: #4CAF50;
+            background: #f0f8f0;
+        }
+
+        .drop-area.dragover {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .drop-area p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .input-preview-section, .output-preview-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+
+        .input-preview-section h2, .output-preview-section h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .input-preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .input-preview img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .input-preview canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #f44336;
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .color-check-info {
+            margin: 10px 0;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .color-check-info.show {
+            display: block;
+        }
+
+        .color-check-info.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .color-check-info .coordinates {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .output-preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .output-preview img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .output-preview canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+
+        .info {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>同一パターン複製ツール</h1>
+        
+        <div class="drop-area" id="dropArea">
+            <p>PNG画像をドラッグ&ドロップしてください</p>
+            <p style="font-size: 12px; margin-top: 10px; color: #999;">
+                対応サイズ: 縦64px × 横64/128/192px
+            </p>
+        </div>
+
+        <input type="file" id="fileInput" accept="image/png" style="display: none;">
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="color-check-info" id="colorCheckInfo"></div>
+
+        <div class="input-preview-section">
+            <h2>元画像プレビュー</h2>
+            <div class="controls">
+                <label for="inputScaleSelect">倍率:</label>
+                <select id="inputScaleSelect">
+                    <option value="1">1x</option>
+                    <option value="2">2x</option>
+                    <option value="4">4x</option>
+                </select>
+            </div>
+            <div class="input-preview" id="inputPreview"></div>
+        </div>
+
+        <div class="controls">
+            <label for="specifiedColorInput">指定色:</label>
+            <input type="color" id="specifiedColorInput" value="#FF9900" style="width: 60px; height: 30px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+            <button id="createButton" disabled>作成</button>
+            <button id="saveButton" disabled>保存</button>
+        </div>
+
+        <div class="output-preview-section">
+            <h2>変換後プレビュー</h2>
+            <div class="controls">
+                <label for="outputScaleSelect">倍率:</label>
+                <select id="outputScaleSelect">
+                    <option value="1">1x</option>
+                    <option value="2">2x</option>
+                    <option value="4">4x</option>
+                </select>
+            </div>
+            <div class="output-preview" id="outputPreview"></div>
+        </div>
+    </div>
+
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const inputPreview = document.getElementById('inputPreview');
+        const outputPreview = document.getElementById('outputPreview');
+        const errorMessage = document.getElementById('errorMessage');
+        const colorCheckInfo = document.getElementById('colorCheckInfo');
+        const createButton = document.getElementById('createButton');
+        const saveButton = document.getElementById('saveButton');
+        const inputScaleSelect = document.getElementById('inputScaleSelect');
+        const outputScaleSelect = document.getElementById('outputScaleSelect');
+        const specifiedColorInput = document.getElementById('specifiedColorInput');
+
+        let inputImage = null;
+        let outputCanvas = null;
+        let outputImageData = null;
+        let invalidPixels = []; // 色チェックで検出された無効なピクセルを保持
+
+        // 指定色を取得する関数
+        function getSpecifiedColor() {
+            const hex = specifiedColorInput.value;
+            const r = parseInt(hex.substring(1, 3), 16);
+            const g = parseInt(hex.substring(3, 5), 16);
+            const b = parseInt(hex.substring(5, 7), 16);
+            return {r, g, b, key: `${r},${g},${b},255`};
+        }
+
+        // ドラッグ&ドロップイベント
+        dropArea.addEventListener('click', () => fileInput.click());
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('dragover');
+        });
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/png')) {
+                showError('PNG画像を選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    inputImage = img;
+                    checkImage(img);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function checkImage(img) {
+            hideError();
+            colorCheckInfo.classList.remove('show', 'error');
+            
+            // 点滅アニメーションを停止
+            stopBlinkAnimation();
+
+            // サイズチェック: 縦64、横64/128/192のいずれかを許可
+            const validWidths = [64, 128, 192];
+            if (img.height !== 64 || !validWidths.includes(img.width)) {
+                showError(`画像サイズが正しくありません。縦64px、横64/128/192pxのいずれかである必要があります。現在: ${img.width}x${img.height}px`);
+                inputPreview.innerHTML = '';
+                createButton.disabled = true;
+                return;
+            }
+
+            // 入力画像を表示（倍率を適用）
+            updateInputPreview(img);
+
+            // 色チェック
+            checkColors(img);
+
+            createButton.disabled = false;
+        }
+
+        let blinkAnimationId = null;
+        let blinkOpacity = 1.0;
+        let blinkDirection = -1;
+
+        function updateInputPreview(img) {
+            const scale = parseInt(inputScaleSelect.value);
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.width = img.width * scale;
+            previewCanvas.height = img.height * scale;
+            const ctx = previewCanvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            
+            // 1dotを倍率分のサイズで描画
+            ctx.drawImage(
+                img,
+                0, 0, img.width, img.height,
+                0, 0, img.width * scale, img.height * scale
+            );
+
+            inputPreview.innerHTML = `
+                <p>元画像 (${img.width}x${img.height}px, 倍率${scale}x)</p>
+                <canvas width="${previewCanvas.width}" height="${previewCanvas.height}"></canvas>
+            `;
+            const previewCanvasElement = inputPreview.querySelector('canvas');
+            const previewCanvasElementCtx = previewCanvasElement.getContext('2d');
+            previewCanvasElementCtx.imageSmoothingEnabled = false;
+            previewCanvasElementCtx.drawImage(previewCanvas, 0, 0);
+            
+            // 点滅表示を再描画
+            if (invalidPixels.length > 0) {
+                startBlinkAnimation(previewCanvasElement, img, scale);
+            } else {
+                stopBlinkAnimation();
+            }
+        }
+
+        function startBlinkAnimation(canvas, img, scale) {
+            // 既存のアニメーションを停止
+            stopBlinkAnimation();
+            
+            const ctx = canvas.getContext('2d');
+            blinkOpacity = 1.0;
+            blinkDirection = -1;
+            
+            function animate() {
+                // 元画像を再描画
+                const previewCanvas = document.createElement('canvas');
+                previewCanvas.width = img.width * scale;
+                previewCanvas.height = img.height * scale;
+                const previewCtx = previewCanvas.getContext('2d');
+                previewCtx.imageSmoothingEnabled = false;
+                previewCtx.drawImage(
+                    img,
+                    0, 0, img.width, img.height,
+                    0, 0, img.width * scale, img.height * scale
+                );
+                
+                ctx.imageSmoothingEnabled = false;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(previewCanvas, 0, 0);
+                
+                // 点滅するピクセルを描画
+                if (invalidPixels.length > 0) {
+                    ctx.globalAlpha = blinkOpacity;
+                    invalidPixels.forEach(pixel => {
+                        const x = pixel.x * scale;
+                        const y = pixel.y * scale;
+                        // 赤い背景
+                        ctx.fillStyle = 'red';
+                        ctx.fillRect(x, y, scale, scale);
+                        // 黄色い枠
+                        ctx.strokeStyle = 'yellow';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x, y, scale, scale);
+                    });
+                    ctx.globalAlpha = 1.0;
+                }
+                
+                // 点滅アニメーション
+                blinkOpacity += blinkDirection * 0.05;
+                if (blinkOpacity <= 0.3) {
+                    blinkDirection = 1;
+                } else if (blinkOpacity >= 1.0) {
+                    blinkDirection = -1;
+                }
+                
+                blinkAnimationId = requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+
+        function stopBlinkAnimation() {
+            if (blinkAnimationId !== null) {
+                cancelAnimationFrame(blinkAnimationId);
+                blinkAnimationId = null;
+            }
+        }
+
+
+        function checkColors(img) {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // 使用されている色を収集
+            const colors = new Set();
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const a = data[i + 3];
+                if (a > 0) { // 透明でないピクセル
+                    colors.add(`${r},${g},${b},${a}`);
+                }
+            }
+
+            // 許可された色を定義（黒: #000000, 指定色）
+            const allowedColors = new Set();
+            allowedColors.add('0,0,0,255'); // 黒
+            const specifiedColor = getSpecifiedColor();
+            allowedColors.add(specifiedColor.key); // 指定色
+            
+            // 使用されている色が許可された色かチェック
+            invalidPixels = []; // グローバル変数をリセット
+            const foundColors = new Set();
+            
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const idx = (y * canvas.width + x) * 4;
+                    const r = data[idx];
+                    const g = data[idx + 1];
+                    const b = data[idx + 2];
+                    const a = data[idx + 3];
+                    
+                    if (a > 0) { // 透明でないピクセル
+                        const colorKey = `${r},${g},${b},${a}`;
+                        foundColors.add(colorKey);
+                        
+                        // 許可された色でない場合、無効なピクセルとして記録
+                        if (!allowedColors.has(colorKey)) {
+                            invalidPixels.push({x, y, r, g, b});
+                        }
+                    }
+                }
+            }
+
+            if (invalidPixels.length > 0) {
+                // 最初の無効なピクセルを表示（座標表示用）
+                const firstInvalid = invalidPixels[0];
+                const countText = invalidPixels.length > 1 ? ` (他${invalidPixels.length - 1}箇所)` : '';
+                colorCheckInfo.classList.add('show', 'error');
+                // RGB値を#RRGGBB形式に変換
+                const rgbHex = `#${firstInvalid.r.toString(16).padStart(2, '0')}${firstInvalid.g.toString(16).padStart(2, '0')}${firstInvalid.b.toString(16).padStart(2, '0')}`;
+                colorCheckInfo.innerHTML = `
+                    <strong>エラー: 2色以外の色が検出されました (${invalidPixels.length}箇所)</strong>
+                    <div class="coordinates">座標: (${firstInvalid.x}, ${firstInvalid.y}) 色: RGB: ${rgbHex}${countText}</div>
+                `;
+                
+                // 入力画像上で全ての無効なピクセルを点滅表示（updateInputPreview内で処理）
+            } else if (foundColors.size === 2) {
+                // 黒と指定色の2色のみが使用されている
+                const specifiedColor = getSpecifiedColor();
+                const colorHex = `#${specifiedColor.r.toString(16).padStart(2, '0')}${specifiedColor.g.toString(16).padStart(2, '0')}${specifiedColor.b.toString(16).padStart(2, '0')}`;
+                colorCheckInfo.classList.add('show');
+                colorCheckInfo.classList.remove('error');
+                colorCheckInfo.innerHTML = `<strong>✓ 色チェック: OK (黒と指定色(${colorHex})の2色使用)</strong>`;
+            } else if (foundColors.size === 1) {
+                colorCheckInfo.classList.add('show');
+                colorCheckInfo.classList.remove('error');
+                colorCheckInfo.innerHTML = `<strong>情報: 1色のみが検出されました</strong>`;
+            } else {
+                colorCheckInfo.classList.add('show');
+                colorCheckInfo.classList.remove('error');
+                colorCheckInfo.innerHTML = `<strong>情報: ${foundColors.size}色が検出されました</strong>`;
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+
+        createButton.addEventListener('click', () => {
+            if (!inputImage) return;
+
+            const outputWidth = 192;
+            const outputHeight = 64;
+
+            // 出力用Canvasを作成（実際の出力サイズは常に64x192）
+            outputCanvas = document.createElement('canvas');
+            outputCanvas.width = outputWidth;
+            outputCanvas.height = outputHeight;
+            const ctx = outputCanvas.getContext('2d');
+
+            // アンチエイリアスを無効化
+            ctx.imageSmoothingEnabled = false;
+
+            // 64x64のパターンを取得（入力画像サイズに関わらず、0,0から64x64を切り抜く）
+            const patternCanvas = document.createElement('canvas');
+            patternCanvas.width = 64;
+            patternCanvas.height = 64;
+            const patternCtx = patternCanvas.getContext('2d');
+            patternCtx.imageSmoothingEnabled = false;
+            // 入力画像の原点(0,0)から64x64の部分を取得
+            patternCtx.drawImage(inputImage, 0, 0, 64, 64, 0, 0, 64, 64);
+
+            // パターンを横に複製（192 = 64 * 3）
+            for (let i = 0; i < 3; i++) {
+                ctx.drawImage(
+                    patternCanvas,
+                    i * 64,
+                    0,
+                    64,
+                    64
+                );
+            }
+
+            // 保存用の画像データを取得（実際の出力サイズ）
+            outputImageData = outputCanvas.toDataURL('image/png');
+
+            // 変換後プレビューを更新
+            updateOutputPreview();
+
+            saveButton.disabled = false;
+        });
+
+        function updateOutputPreview() {
+            if (!outputCanvas) return;
+
+            const previewScale = parseInt(outputScaleSelect.value);
+            const outputWidth = 192;
+            const outputHeight = 64;
+
+            // プレビュー表示用のCanvasを作成（倍率を適用）
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.width = outputWidth * previewScale;
+            previewCanvas.height = outputHeight * previewScale;
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCtx.imageSmoothingEnabled = false;
+            
+            // 1dotを倍率分のサイズで描画（1x: 1x1, 2x: 2x2, 4x: 4x4）
+            previewCtx.drawImage(
+                outputCanvas,
+                0, 0, outputWidth, outputHeight,
+                0, 0, outputWidth * previewScale, outputHeight * previewScale
+            );
+
+            // プレビュー表示
+            outputPreview.innerHTML = `
+                <p>変換後画像 (${outputWidth}x${outputHeight}px, 倍率${previewScale}x)</p>
+                <canvas width="${previewCanvas.width}" height="${previewCanvas.height}"></canvas>
+            `;
+            const previewCanvasElement = outputPreview.querySelector('canvas');
+            const previewCanvasElementCtx = previewCanvasElement.getContext('2d');
+            previewCanvasElementCtx.imageSmoothingEnabled = false;
+            previewCanvasElementCtx.drawImage(previewCanvas, 0, 0);
+        }
+
+        saveButton.addEventListener('click', () => {
+            if (!outputImageData) return;
+
+            const link = document.createElement('a');
+            link.download = 'output.png';
+            link.href = outputImageData;
+            link.click();
+        });
+
+        // 元画像プレビューの倍率変更時に更新
+        inputScaleSelect.addEventListener('change', () => {
+            if (inputImage) {
+                updateInputPreview(inputImage);
+            }
+        });
+
+        // 変換後プレビューの倍率変更時に更新
+        outputScaleSelect.addEventListener('change', () => {
+            updateOutputPreview();
+        });
+
+        // 指定色変更時に色チェックを再実行
+        specifiedColorInput.addEventListener('change', () => {
+            if (inputImage) {
+                checkColors(inputImage);
+            }
+        });
+    </script>
+</body>
+</html>
+
