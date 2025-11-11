@@ -191,24 +191,208 @@
             border-radius: 4px;
             color: #1976d2;
         }
+
+        .info-section {
+            margin: 20px 0;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .info-header {
+            padding: 15px 20px;
+            background: #e8e8e8;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.3s;
+        }
+
+        .info-header:hover {
+            background: #d8d8d8;
+        }
+
+        .info-header h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-header #infoToggle {
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .info-content {
+            padding: 20px;
+            display: none;
+        }
+
+        .info-content.show {
+            display: block;
+        }
+
+        .info-subsection {
+            margin-bottom: 20px;
+        }
+
+        .info-subsection:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-subsection h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #555;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .info-subsection ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .info-subsection li {
+            margin-bottom: 5px;
+        }
+
+        .color-info {
+            margin: 15px 0 25px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .color-value {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>同一パターン複製ツール</h1>
         
+        <div class="info-section">
+            <div class="info-header" onclick="toggleInfo()">
+                <h3>機能・操作説明 <span id="infoToggle">▼</span></h3>
+            </div>
+            <div class="info-content" id="infoContent">
+                <div class="info-subsection">
+                    <h4>仕様</h4>
+                    <ul>
+                        <li><strong>入力:</strong> PNG画像またはBMP画像（縦64px、横64/128/192px）</li>
+                        <li><strong>出力:</strong> PNG画像（縦64px、横192px）</li>
+                        <li><strong>対応色:</strong> 2色（黒: #000000、指定色: 初期値 #FF9900）</li>
+                        <li>入力画像の原点(0,0)から64x64の部分を横方向に3つ並べた形として作成</li>
+                    </ul>
+                </div>
+                <div class="info-subsection">
+                    <h4>操作方法</h4>
+                    <ul>
+                        <li><strong>画像登録:</strong> ファイル選択領域にPNG画像またはBMP画像をドラッグ&ドロップ</li>
+                        <li><strong>倍率変更:</strong> 元画像・変換後プレビューで1x/2x/4x/6x/8xを選択可能
+                            <ul>
+                                <li>元画像プレビュー: 初期表示は6x</li>
+                                <li>変換後プレビュー: 初期表示は1x</li>
+                            </ul>
+                        </li>
+                        <li><strong>ドット編集:</strong> 元画像プレビュー上でドットをクリックすると黒と指定色が入れ替わる</li>
+                        <li><strong>リセット:</strong> 元画像の初期状態に戻す</li>
+                        <li><strong>Undo/Redo:</strong> 編集操作を戻す/進める（最大50件の履歴を保持）</li>
+                        <li><strong>パターンコピー:</strong> 原点(0,0)から64x64の領域を残りの領域にコピー
+                            <ul>
+                                <li>64x64: 残りの領域がないので何もしない（ボタンは無効）</li>
+                                <li>128x64: (64,0)にコピー</li>
+                                <li>192x64: (64,0), (128,0)にコピー</li>
+                            </ul>
+                        </li>
+                        <li><strong>指定色変更:</strong> カラーピッカーまたはHEX入力で指定色を変更可能（HEX入力がデフォルト表示、自動的に色チェックを再実行）</li>
+                        <li><strong>作成:</strong> 変換後の画像をプレビュー表示</li>
+                        <li><strong>保存:</strong> 変換後の画像をローカルに保存</li>
+                    </ul>
+                </div>
+                <div class="info-subsection">
+                    <h4>色チェック機能</h4>
+                    <ul>
+                        <li>対応色以外の色が検出された場合、該当位置を点滅表示</li>
+                        <li>座標(x,y)と色(RGB: #RRGGBB形式)を表示</li>
+                        <li>複数箇所ある場合は全て点滅表示</li>
+                        <li>倍率変更しても該当部分の点滅は維持</li>
+                        <li>点滅表示はCanvas上に直接描画されるため、位置ずれが発生しない</li>
+                    </ul>
+                </div>
+                <div class="info-subsection">
+                    <h4>エラー補正機能</h4>
+                    <ul>
+                        <li>エラーが検出された場合のみ表示される</li>
+                        <li><strong>エラー箇所を全て前景色にする:</strong> エラーとなっているドット全てを前景色（指定色）に変更</li>
+                        <li><strong>エラー箇所を全て背景色にする:</strong> エラーとなっているドット全てを背景色（黒）に変更</li>
+                        <li>編集履歴に保存されるため、Undo/Redoで取り消し・再実行が可能</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="color-info" id="colorInfo">
+            <div class="color-item">
+                <span class="color-label">背景色:</span>
+                <span class="color-value" style="background-color: #000000; color: white; padding: 2px 8px; border-radius: 4px;">#000000</span>
+            </div>
+            <div class="color-item">
+                <span class="color-label">前景色:</span>
+                <span class="color-value" id="foregroundColorValue" style="background-color: #FF9900; color: white; padding: 2px 8px; border-radius: 4px;">#FF9900</span>
+                <label for="specifiedColorHexInput" style="margin-left: 10px; font-size: 12px; color: #666;">HEX:</label>
+                <input type="text" id="specifiedColorHexInput" value="#FF9900" pattern="^#[0-9A-Fa-f]{6}$" style="width: 80px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12px;" placeholder="#FF9900">
+                <input type="color" id="specifiedColorInput" value="#FF9900" style="width: 50px; height: 28px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; vertical-align: middle; margin-left: 5px;">
+            </div>
+        </div>
+        
         <div class="drop-area" id="dropArea">
-            <p>PNG画像をドラッグ&ドロップしてください</p>
+            <p>PNG/BMP画像をドラッグ&ドロップしてください</p>
             <p style="font-size: 12px; margin-top: 10px; color: #999;">
                 対応サイズ: 縦64px × 横64/128/192px
             </p>
         </div>
 
-        <input type="file" id="fileInput" accept="image/png" style="display: none;">
+        <input type="file" id="fileInput" accept="image/png,image/bmp,image/x-ms-bmp" style="display: none;">
 
         <div class="error-message" id="errorMessage"></div>
 
         <div class="color-check-info" id="colorCheckInfo"></div>
+
+        <div class="error-correction" id="errorCorrection" style="display: none;">
+            <div class="controls">
+                <span style="font-weight: bold; color: #333;">エラー補正:</span>
+                <button id="fixToForegroundButton">エラー箇所を全て前景色にする</button>
+                <button id="fixToBackgroundButton">エラー箇所を全て背景色にする</button>
+            </div>
+        </div>
 
         <div class="input-preview-section">
             <h2>元画像プレビュー</h2>
@@ -218,14 +402,21 @@
                     <option value="1">1x</option>
                     <option value="2">2x</option>
                     <option value="4">4x</option>
+                    <option value="6" selected>6x</option>
+                    <option value="8">8x</option>
                 </select>
+                <button id="resetButton" disabled>リセット</button>
+                <button id="undoButton" disabled>Undo</button>
+                <button id="redoButton" disabled>Redo</button>
+                <button id="copyPatternButton" disabled>パターンコピー</button>
             </div>
             <div class="input-preview" id="inputPreview"></div>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                ※ ドットをクリックすると黒と指定色が入れ替わります
+            </p>
         </div>
 
         <div class="controls">
-            <label for="specifiedColorInput">指定色:</label>
-            <input type="color" id="specifiedColorInput" value="#FF9900" style="width: 60px; height: 30px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
             <button id="createButton" disabled>作成</button>
             <button id="saveButton" disabled>保存</button>
         </div>
@@ -238,6 +429,8 @@
                     <option value="1">1x</option>
                     <option value="2">2x</option>
                     <option value="4">4x</option>
+                    <option value="6">6x</option>
+                    <option value="8">8x</option>
                 </select>
             </div>
             <div class="output-preview" id="outputPreview"></div>
@@ -256,11 +449,25 @@
         const inputScaleSelect = document.getElementById('inputScaleSelect');
         const outputScaleSelect = document.getElementById('outputScaleSelect');
         const specifiedColorInput = document.getElementById('specifiedColorInput');
+        const specifiedColorHexInput = document.getElementById('specifiedColorHexInput');
+        const foregroundColorValue = document.getElementById('foregroundColorValue');
+        const resetButton = document.getElementById('resetButton');
+        const undoButton = document.getElementById('undoButton');
+        const redoButton = document.getElementById('redoButton');
+        const errorCorrection = document.getElementById('errorCorrection');
+        const fixToForegroundButton = document.getElementById('fixToForegroundButton');
+        const fixToBackgroundButton = document.getElementById('fixToBackgroundButton');
+        const copyPatternButton = document.getElementById('copyPatternButton');
 
         let inputImage = null;
+        let originalImageData = null; // 元画像のImageData（リセット用）
+        let currentImageData = null; // 現在の編集状態のImageData
         let outputCanvas = null;
         let outputImageData = null;
         let invalidPixels = []; // 色チェックで検出された無効なピクセルを保持
+        let editHistory = []; // 編集履歴（Undo用）
+        let editHistoryIndex = -1; // 現在の編集履歴のインデックス
+        let maxHistorySize = 50; // 最大履歴数
 
         // 指定色を取得する関数
         function getSpecifiedColor() {
@@ -296,8 +503,11 @@
         });
 
         function handleFile(file) {
-            if (!file.type.startsWith('image/png')) {
-                showError('PNG画像を選択してください');
+            // PNGまたはBMPファイルを許可
+            const isPNG = file.type === 'image/png';
+            const isBMP = file.type === 'image/bmp' || file.type === 'image/x-ms-bmp' || file.name.toLowerCase().endsWith('.bmp');
+            if (!isPNG && !isBMP) {
+                showError('PNGまたはBMP画像を選択してください');
                 return;
             }
 
@@ -329,49 +539,263 @@
                 return;
             }
 
+            // 元画像のImageDataを保存
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            currentImageData = new ImageData(
+                new Uint8ClampedArray(originalImageData.data),
+                originalImageData.width,
+                originalImageData.height
+            );
+            
+            // 編集履歴をリセット（初期状態を履歴に追加）
+            editHistory = [];
+            const initialImageData = new ImageData(
+                new Uint8ClampedArray(currentImageData.data),
+                currentImageData.width,
+                currentImageData.height
+            );
+            editHistory.push(initialImageData);
+            editHistoryIndex = 0;
+            updateEditButtons();
+
             // 入力画像を表示（倍率を適用）
-            updateInputPreview(img);
+            updateInputPreviewFromImageData();
 
             // 色チェック
-            checkColors(img);
+            checkColorsFromImageData();
 
             createButton.disabled = false;
+            resetButton.disabled = false;
+            // パターンコピーボタンの有効/無効を設定
+            copyPatternButton.disabled = (img.width === 64);
         }
 
         let blinkAnimationId = null;
         let blinkOpacity = 1.0;
         let blinkDirection = -1;
 
-        function updateInputPreview(img) {
+        function updateInputPreviewFromImageData() {
+            if (!currentImageData) return;
+            
             const scale = parseInt(inputScaleSelect.value);
+            const width = currentImageData.width;
+            const height = currentImageData.height;
+            
+            // ImageDataから画像を作成
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(currentImageData, 0, 0);
+            
+            // 倍率を適用したCanvasを作成
             const previewCanvas = document.createElement('canvas');
-            previewCanvas.width = img.width * scale;
-            previewCanvas.height = img.height * scale;
+            previewCanvas.width = width * scale;
+            previewCanvas.height = height * scale;
             const ctx = previewCanvas.getContext('2d');
             ctx.imageSmoothingEnabled = false;
             
             // 1dotを倍率分のサイズで描画
             ctx.drawImage(
-                img,
-                0, 0, img.width, img.height,
-                0, 0, img.width * scale, img.height * scale
+                tempCanvas,
+                0, 0, width, height,
+                0, 0, width * scale, height * scale
             );
 
             inputPreview.innerHTML = `
-                <p>元画像 (${img.width}x${img.height}px, 倍率${scale}x)</p>
+                <p>元画像 (${width}x${height}px, 倍率${scale}x)</p>
                 <canvas width="${previewCanvas.width}" height="${previewCanvas.height}"></canvas>
             `;
             const previewCanvasElement = inputPreview.querySelector('canvas');
+            if (!previewCanvasElement) {
+                console.error('Canvas element not found');
+                return;
+            }
             const previewCanvasElementCtx = previewCanvasElement.getContext('2d');
+            if (!previewCanvasElementCtx) {
+                console.error('Canvas context not found');
+                return;
+            }
             previewCanvasElementCtx.imageSmoothingEnabled = false;
             previewCanvasElementCtx.drawImage(previewCanvas, 0, 0);
             
+            // クリックイベントを追加（Canvasを置き換える前に描画を完了）
+            setupCanvasClickHandler(previewCanvasElement, previewCanvas, width, height, scale);
+            
             // 点滅表示を再描画
             if (invalidPixels.length > 0) {
-                startBlinkAnimation(previewCanvasElement, img, scale);
+                // ImageDataから画像オブジェクトを作成して点滅表示
+                const img = new Image();
+                img.onload = () => {
+                    const currentCanvas = inputPreview.querySelector('canvas');
+                    if (currentCanvas) {
+                        startBlinkAnimation(currentCanvas, img, scale);
+                    }
+                };
+                img.src = tempCanvas.toDataURL();
             } else {
                 stopBlinkAnimation();
             }
+        }
+
+        function setupCanvasClickHandler(canvas, sourceCanvas, imgWidth, imgHeight, scale) {
+            // 既存のイベントリスナーを削除するために、新しいCanvasに置き換え
+            const newCanvas = document.createElement('canvas');
+            newCanvas.width = canvas.width;
+            newCanvas.height = canvas.height;
+            newCanvas.style.cursor = 'crosshair';
+            
+            // 元のCanvasの内容を新しいCanvasにコピー
+            const newCtx = newCanvas.getContext('2d');
+            newCtx.imageSmoothingEnabled = false;
+            newCtx.drawImage(sourceCanvas, 0, 0);
+            
+            canvas.parentNode.replaceChild(newCanvas, canvas);
+            
+            newCanvas.addEventListener('click', (e) => {
+                const rect = newCanvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) * (newCanvas.width / rect.width) / scale);
+                const y = Math.floor((e.clientY - rect.top) * (newCanvas.height / rect.height) / scale);
+                
+                if (x >= 0 && x < imgWidth && y >= 0 && y < imgHeight) {
+                    togglePixel(x, y);
+                }
+            });
+        }
+
+        function togglePixel(x, y) {
+            if (!currentImageData) return;
+            
+            const idx = (y * currentImageData.width + x) * 4;
+            const r = currentImageData.data[idx];
+            const g = currentImageData.data[idx + 1];
+            const b = currentImageData.data[idx + 2];
+            const a = currentImageData.data[idx + 3];
+            
+            // 現在の色を判定
+            const isBlack = r === 0 && g === 0 && b === 0;
+            const specifiedColor = getSpecifiedColor();
+            const isSpecifiedColor = r === specifiedColor.r && g === specifiedColor.g && b === specifiedColor.b;
+            
+            // 黒と指定色のみを編集対象とする
+            if (!isBlack && !isSpecifiedColor) return;
+            
+            // 編集履歴に現在の状態を保存（Undo用）
+            saveToHistory();
+            
+            // 色を入れ替え
+            if (isBlack) {
+                // 黒 → 指定色
+                currentImageData.data[idx] = specifiedColor.r;
+                currentImageData.data[idx + 1] = specifiedColor.g;
+                currentImageData.data[idx + 2] = specifiedColor.b;
+            } else {
+                // 指定色 → 黒
+                currentImageData.data[idx] = 0;
+                currentImageData.data[idx + 1] = 0;
+                currentImageData.data[idx + 2] = 0;
+            }
+            
+            // プレビューを更新
+            updateInputPreviewFromImageData();
+            
+            // 色チェックを再実行
+            checkColorsFromImageData();
+            
+            updateEditButtons();
+        }
+
+        function saveToHistory() {
+            // 現在の位置より後ろの履歴を削除（Redo分岐を削除）
+            editHistory = editHistory.slice(0, editHistoryIndex + 1);
+            
+            // 現在の状態を履歴に追加
+            const imageDataCopy = new ImageData(
+                new Uint8ClampedArray(currentImageData.data),
+                currentImageData.width,
+                currentImageData.height
+            );
+            editHistory.push(imageDataCopy);
+            editHistoryIndex = editHistory.length - 1;
+            
+            // 履歴サイズを制限
+            if (editHistory.length > maxHistorySize) {
+                editHistory.shift();
+                editHistoryIndex--;
+            }
+        }
+
+        function undo() {
+            if (editHistoryIndex > 0) {
+                editHistoryIndex--;
+                currentImageData = new ImageData(
+                    new Uint8ClampedArray(editHistory[editHistoryIndex].data),
+                    editHistory[editHistoryIndex].width,
+                    editHistory[editHistoryIndex].height
+                );
+                updateInputPreviewFromImageData();
+                checkColorsFromImageData();
+                updateEditButtons();
+            }
+        }
+
+        function redo() {
+            if (editHistoryIndex < editHistory.length - 1) {
+                editHistoryIndex++;
+                currentImageData = new ImageData(
+                    new Uint8ClampedArray(editHistory[editHistoryIndex].data),
+                    editHistory[editHistoryIndex].width,
+                    editHistory[editHistoryIndex].height
+                );
+                updateInputPreviewFromImageData();
+                checkColorsFromImageData();
+                updateEditButtons();
+            }
+        }
+
+        function reset() {
+            if (!originalImageData) return;
+            
+            currentImageData = new ImageData(
+                new Uint8ClampedArray(originalImageData.data),
+                originalImageData.width,
+                originalImageData.height
+            );
+            
+            editHistory = [];
+            editHistoryIndex = -1;
+            
+            updateInputPreviewFromImageData();
+            checkColorsFromImageData();
+            updateEditButtons();
+        }
+
+        function updateEditButtons() {
+            undoButton.disabled = editHistoryIndex <= 0 || editHistory.length <= 1;
+            redoButton.disabled = editHistoryIndex >= editHistory.length - 1;
+            resetButton.disabled = !originalImageData;
+        }
+
+        function checkColorsFromImageData() {
+            if (!currentImageData) return;
+            
+            // ImageDataから画像を作成
+            const canvas = document.createElement('canvas');
+            canvas.width = currentImageData.width;
+            canvas.height = currentImageData.height;
+            const ctx = canvas.getContext('2d');
+            ctx.putImageData(currentImageData, 0, 0);
+            
+            const img = new Image();
+            img.onload = () => {
+                checkColors(img);
+            };
+            img.src = canvas.toDataURL();
         }
 
         function startBlinkAnimation(canvas, img, scale) {
@@ -383,16 +807,24 @@
             blinkDirection = -1;
             
             function animate() {
-                // 元画像を再描画
+                if (!currentImageData) return;
+                
+                // 編集済みImageDataから画像を再描画
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = currentImageData.width;
+                tempCanvas.height = currentImageData.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(currentImageData, 0, 0);
+                
                 const previewCanvas = document.createElement('canvas');
-                previewCanvas.width = img.width * scale;
-                previewCanvas.height = img.height * scale;
+                previewCanvas.width = currentImageData.width * scale;
+                previewCanvas.height = currentImageData.height * scale;
                 const previewCtx = previewCanvas.getContext('2d');
                 previewCtx.imageSmoothingEnabled = false;
                 previewCtx.drawImage(
-                    img,
-                    0, 0, img.width, img.height,
-                    0, 0, img.width * scale, img.height * scale
+                    tempCanvas,
+                    0, 0, currentImageData.width, currentImageData.height,
+                    0, 0, currentImageData.width * scale, currentImageData.height * scale
                 );
                 
                 ctx.imageSmoothingEnabled = false;
@@ -502,6 +934,9 @@
                     <div class="coordinates">座標: (${firstInvalid.x}, ${firstInvalid.y}) 色: RGB: ${rgbHex}${countText}</div>
                 `;
                 
+                // エラー補正セクションを表示
+                errorCorrection.style.display = 'block';
+                
                 // 入力画像上で全ての無効なピクセルを点滅表示（updateInputPreview内で処理）
             } else if (foundColors.size === 2) {
                 // 黒と指定色の2色のみが使用されている
@@ -514,10 +949,14 @@
                 colorCheckInfo.classList.add('show');
                 colorCheckInfo.classList.remove('error');
                 colorCheckInfo.innerHTML = `<strong>情報: 1色のみが検出されました</strong>`;
+                // エラー補正セクションを非表示
+                errorCorrection.style.display = 'none';
             } else {
                 colorCheckInfo.classList.add('show');
                 colorCheckInfo.classList.remove('error');
                 colorCheckInfo.innerHTML = `<strong>情報: ${foundColors.size}色が検出されました</strong>`;
+                // エラー補正セクションを非表示
+                errorCorrection.style.display = 'none';
             }
         }
 
@@ -531,7 +970,7 @@
         }
 
         createButton.addEventListener('click', () => {
-            if (!inputImage) return;
+            if (!currentImageData) return;
 
             const outputWidth = 192;
             const outputHeight = 64;
@@ -545,14 +984,22 @@
             // アンチエイリアスを無効化
             ctx.imageSmoothingEnabled = false;
 
-            // 64x64のパターンを取得（入力画像サイズに関わらず、0,0から64x64を切り抜く）
+            // 編集済みImageDataから64x64のパターンを取得
             const patternCanvas = document.createElement('canvas');
             patternCanvas.width = 64;
             patternCanvas.height = 64;
             const patternCtx = patternCanvas.getContext('2d');
             patternCtx.imageSmoothingEnabled = false;
-            // 入力画像の原点(0,0)から64x64の部分を取得
-            patternCtx.drawImage(inputImage, 0, 0, 64, 64, 0, 0, 64, 64);
+            
+            // 編集済みImageDataから64x64の部分を取得
+            const sourceCanvas = document.createElement('canvas');
+            sourceCanvas.width = currentImageData.width;
+            sourceCanvas.height = currentImageData.height;
+            const sourceCtx = sourceCanvas.getContext('2d');
+            sourceCtx.putImageData(currentImageData, 0, 0);
+            
+            // 原点(0,0)から64x64の部分を取得
+            patternCtx.drawImage(sourceCanvas, 0, 0, 64, 64, 0, 0, 64, 64);
 
             // パターンを横に複製（192 = 64 * 3）
             for (let i = 0; i < 3; i++) {
@@ -617,9 +1064,24 @@
 
         // 元画像プレビューの倍率変更時に更新
         inputScaleSelect.addEventListener('change', () => {
-            if (inputImage) {
-                updateInputPreview(inputImage);
+            if (currentImageData) {
+                updateInputPreviewFromImageData();
             }
+        });
+
+        // リセットボタン
+        resetButton.addEventListener('click', () => {
+            reset();
+        });
+
+        // Undoボタン
+        undoButton.addEventListener('click', () => {
+            undo();
+        });
+
+        // Redoボタン
+        redoButton.addEventListener('click', () => {
+            redo();
         });
 
         // 変換後プレビューの倍率変更時に更新
@@ -627,11 +1089,196 @@
             updateOutputPreview();
         });
 
-        // 指定色変更時に色チェックを再実行
+        // 指定色変更時に色チェックを再実行し、前景色表示を更新
         specifiedColorInput.addEventListener('change', () => {
+            // カラーピッカーからHEX入力に同期
+            specifiedColorHexInput.value = specifiedColorInput.value.toUpperCase();
+            updateForegroundColorDisplay();
             if (inputImage) {
                 checkColors(inputImage);
             }
+        });
+
+        // HEX入力からカラーピッカーに同期
+        specifiedColorHexInput.addEventListener('input', (e) => {
+            let hex = e.target.value.toUpperCase();
+            // #がなければ追加
+            if (!hex.startsWith('#')) {
+                hex = '#' + hex;
+            }
+            // 6桁のHEX形式に正規化
+            if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+                specifiedColorHexInput.value = hex;
+                specifiedColorInput.value = hex;
+                updateForegroundColorDisplay();
+                if (inputImage) {
+                    checkColors(inputImage);
+                }
+            }
+        });
+
+        // HEX入力のフォーカスアウト時に検証
+        specifiedColorHexInput.addEventListener('blur', (e) => {
+            let hex = e.target.value.toUpperCase();
+            if (!hex.startsWith('#')) {
+                hex = '#' + hex;
+            }
+            // 無効な値の場合はデフォルト値に戻す
+            if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+                hex = '#FF9900';
+            }
+            specifiedColorHexInput.value = hex;
+            specifiedColorInput.value = hex;
+            updateForegroundColorDisplay();
+        });
+
+        // 前景色表示を更新する関数
+        function updateForegroundColorDisplay() {
+            const hex = specifiedColorInput.value.toUpperCase();
+            foregroundColorValue.textContent = hex;
+            foregroundColorValue.style.backgroundColor = hex;
+            // 背景色に応じて文字色を調整（明るい色の場合は黒、暗い色の場合は白）
+            const r = parseInt(hex.substring(1, 3), 16);
+            const g = parseInt(hex.substring(3, 5), 16);
+            const b = parseInt(hex.substring(5, 7), 16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            foregroundColorValue.style.color = brightness > 128 ? '#000000' : '#ffffff';
+        }
+
+        // 初期表示時に前景色を更新
+        updateForegroundColorDisplay();
+
+        // 情報セクションの開閉
+        function toggleInfo() {
+            const content = document.getElementById('infoContent');
+            const toggle = document.getElementById('infoToggle');
+            if (content.classList.contains('show')) {
+                content.classList.remove('show');
+                toggle.textContent = '▼';
+            } else {
+                content.classList.add('show');
+                toggle.textContent = '▲';
+            }
+        }
+
+        // エラー箇所を全て前景色にする
+        function fixErrorsToForeground() {
+            if (!currentImageData || invalidPixels.length === 0) return;
+            
+            // 編集履歴に現在の状態を保存
+            saveToHistory();
+            
+            const specifiedColor = getSpecifiedColor();
+            
+            // 全てのエラー箇所を前景色に変更
+            invalidPixels.forEach(pixel => {
+                const idx = (pixel.y * currentImageData.width + pixel.x) * 4;
+                currentImageData.data[idx] = specifiedColor.r;
+                currentImageData.data[idx + 1] = specifiedColor.g;
+                currentImageData.data[idx + 2] = specifiedColor.b;
+            });
+            
+            // プレビューを更新
+            updateInputPreviewFromImageData();
+            
+            // 色チェックを再実行
+            checkColorsFromImageData();
+            
+            updateEditButtons();
+        }
+
+        // エラー箇所を全て背景色にする
+        function fixErrorsToBackground() {
+            if (!currentImageData || invalidPixels.length === 0) return;
+            
+            // 編集履歴に現在の状態を保存
+            saveToHistory();
+            
+            // 全てのエラー箇所を背景色（黒）に変更
+            invalidPixels.forEach(pixel => {
+                const idx = (pixel.y * currentImageData.width + pixel.x) * 4;
+                currentImageData.data[idx] = 0;
+                currentImageData.data[idx + 1] = 0;
+                currentImageData.data[idx + 2] = 0;
+            });
+            
+            // プレビューを更新
+            updateInputPreviewFromImageData();
+            
+            // 色チェックを再実行
+            checkColorsFromImageData();
+            
+            updateEditButtons();
+        }
+
+        // エラー補正ボタンのイベントリスナー
+        fixToForegroundButton.addEventListener('click', () => {
+            fixErrorsToForeground();
+        });
+
+        fixToBackgroundButton.addEventListener('click', () => {
+            fixErrorsToBackground();
+        });
+
+        // パターンコピー機能
+        function copyPattern() {
+            if (!currentImageData) return;
+            
+            const width = currentImageData.width;
+            const height = currentImageData.height;
+            
+            // 64x64の場合は何もしない
+            if (width === 64) return;
+            
+            // 編集履歴に現在の状態を保存
+            saveToHistory();
+            
+            // 128x64の場合: (64,0)にコピー
+            if (width === 128) {
+                for (let y = 0; y < 64; y++) {
+                    for (let x = 0; x < 64; x++) {
+                        const srcIdx = (y * width + x) * 4;
+                        const dstIdx = (y * width + (x + 64)) * 4;
+                        currentImageData.data[dstIdx] = currentImageData.data[srcIdx];
+                        currentImageData.data[dstIdx + 1] = currentImageData.data[srcIdx + 1];
+                        currentImageData.data[dstIdx + 2] = currentImageData.data[srcIdx + 2];
+                        currentImageData.data[dstIdx + 3] = currentImageData.data[srcIdx + 3];
+                    }
+                }
+            }
+            // 192x64の場合: (64,0)と(128,0)にコピー
+            else if (width === 192) {
+                for (let y = 0; y < 64; y++) {
+                    for (let x = 0; x < 64; x++) {
+                        const srcIdx = (y * width + x) * 4;
+                        // (64,0)にコピー
+                        const dstIdx1 = (y * width + (x + 64)) * 4;
+                        currentImageData.data[dstIdx1] = currentImageData.data[srcIdx];
+                        currentImageData.data[dstIdx1 + 1] = currentImageData.data[srcIdx + 1];
+                        currentImageData.data[dstIdx1 + 2] = currentImageData.data[srcIdx + 2];
+                        currentImageData.data[dstIdx1 + 3] = currentImageData.data[srcIdx + 3];
+                        // (128,0)にコピー
+                        const dstIdx2 = (y * width + (x + 128)) * 4;
+                        currentImageData.data[dstIdx2] = currentImageData.data[srcIdx];
+                        currentImageData.data[dstIdx2 + 1] = currentImageData.data[srcIdx + 1];
+                        currentImageData.data[dstIdx2 + 2] = currentImageData.data[srcIdx + 2];
+                        currentImageData.data[dstIdx2 + 3] = currentImageData.data[srcIdx + 3];
+                    }
+                }
+            }
+            
+            // プレビューを更新
+            updateInputPreviewFromImageData();
+            
+            // 色チェックを再実行
+            checkColorsFromImageData();
+            
+            updateEditButtons();
+        }
+
+        // パターンコピーボタンのイベントリスナー
+        copyPatternButton.addEventListener('click', () => {
+            copyPattern();
         });
     </script>
 </body>
