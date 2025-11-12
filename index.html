@@ -750,6 +750,14 @@
                     editHistory[editHistoryIndex].width,
                     editHistory[editHistoryIndex].height
                 );
+                
+                // エラー表示を一時的にクリア（色チェック完了後に更新される）
+                invalidPixels = [];
+                colorCheckInfo.classList.remove('show', 'error');
+                colorCheckInfo.innerHTML = '';
+                errorCorrection.style.display = 'none';
+                stopBlinkAnimation();
+                
                 updateInputPreviewFromImageData();
                 checkColorsFromImageData();
                 updateEditButtons();
@@ -764,9 +772,19 @@
                     editHistory[editHistoryIndex].width,
                     editHistory[editHistoryIndex].height
                 );
-                updateInputPreviewFromImageData();
-                checkColorsFromImageData();
-                updateEditButtons();
+                
+                // エラー表示を一時的にクリア（色チェック完了後に更新される）
+                invalidPixels = [];
+                colorCheckInfo.classList.remove('show', 'error');
+                colorCheckInfo.innerHTML = '';
+                errorCorrection.style.display = 'none';
+                stopBlinkAnimation();
+                
+                // 色チェックを先に実行し、完了後にプレビューを更新
+                checkColorsFromImageData(() => {
+                    updateInputPreviewFromImageData();
+                    updateEditButtons();
+                });
             }
         }
 
@@ -793,8 +811,11 @@
             resetButton.disabled = !originalImageData;
         }
 
-        function checkColorsFromImageData() {
-            if (!currentImageData) return;
+        function checkColorsFromImageData(callback) {
+            if (!currentImageData) {
+                if (callback) callback();
+                return;
+            }
             
             // ImageDataから画像を作成
             const canvas = document.createElement('canvas');
@@ -806,6 +827,7 @@
             const img = new Image();
             img.onload = () => {
                 checkColors(img);
+                if (callback) callback();
             };
             img.src = canvas.toDataURL();
         }
@@ -949,7 +971,13 @@
                 // エラー補正セクションを表示
                 errorCorrection.style.display = 'block';
                 
-                // 入力画像上で全ての無効なピクセルを点滅表示（updateInputPreview内で処理）
+                // 入力画像上で全ての無効なピクセルを点滅表示
+                // プレビューCanvasを取得して点滅アニメーションを開始
+                const previewCanvas = inputPreview.querySelector('canvas');
+                if (previewCanvas) {
+                    const scale = parseInt(inputScaleSelect.value);
+                    startBlinkAnimation(previewCanvas, img, scale);
+                }
             } else if (foundColors.size === 2) {
                 // 黒と指定色の2色のみが使用されている
                 const specifiedColor = getSpecifiedColor();
@@ -957,6 +985,8 @@
                 colorCheckInfo.classList.add('show');
                 colorCheckInfo.classList.remove('error');
                 colorCheckInfo.innerHTML = `<strong>✓ 色チェック: OK (黒と指定色(${colorHex})の2色使用)</strong>`;
+                // エラー補正セクションを非表示
+                errorCorrection.style.display = 'none';
             } else if (foundColors.size === 1) {
                 colorCheckInfo.classList.add('show');
                 colorCheckInfo.classList.remove('error');
@@ -970,6 +1000,15 @@
                 // エラー補正セクションを非表示
                 errorCorrection.style.display = 'none';
             }
+            
+            // エラーがない場合は点滅アニメーションを停止し、エラー補正セクションを非表示にする
+            if (invalidPixels.length === 0) {
+                stopBlinkAnimation();
+                errorCorrection.style.display = 'none';
+            }
+            
+            // 編集ボタンの状態を更新（非同期処理完了後に確実に更新）
+            updateEditButtons();
         }
 
         function showError(message) {
@@ -1177,7 +1216,7 @@
         function fixErrorsToForeground() {
             if (!currentImageData || invalidPixels.length === 0) return;
             
-            // 編集履歴に現在の状態を保存
+            // 編集履歴に現在の状態を保存（修正前の状態）
             saveToHistory();
             
             const specifiedColor = getSpecifiedColor();
@@ -1190,10 +1229,22 @@
                 currentImageData.data[idx + 2] = specifiedColor.b;
             });
             
+            // 編集履歴に修正後の状態を保存（Redo用）
+            saveToHistory();
+            
+            // エラーピクセルをクリア（色チェック完了まで一時的に）
+            invalidPixels = [];
+            
+            // エラーメッセージを一時的にクリア（色チェック完了後に更新される）
+            colorCheckInfo.classList.remove('show', 'error');
+            colorCheckInfo.innerHTML = '';
+            errorCorrection.style.display = 'none';
+            stopBlinkAnimation();
+            
             // プレビューを更新
             updateInputPreviewFromImageData();
             
-            // 色チェックを再実行
+            // 色チェックを再実行（非同期だが、checkColors内でinvalidPixelsが更新される）
             checkColorsFromImageData();
             
             updateEditButtons();
@@ -1203,7 +1254,7 @@
         function fixErrorsToBackground() {
             if (!currentImageData || invalidPixels.length === 0) return;
             
-            // 編集履歴に現在の状態を保存
+            // 編集履歴に現在の状態を保存（修正前の状態）
             saveToHistory();
             
             // 全てのエラー箇所を背景色（黒）に変更
@@ -1214,10 +1265,22 @@
                 currentImageData.data[idx + 2] = 0;
             });
             
+            // 編集履歴に修正後の状態を保存（Redo用）
+            saveToHistory();
+            
+            // エラーピクセルをクリア（色チェック完了まで一時的に）
+            invalidPixels = [];
+            
+            // エラーメッセージを一時的にクリア（色チェック完了後に更新される）
+            colorCheckInfo.classList.remove('show', 'error');
+            colorCheckInfo.innerHTML = '';
+            errorCorrection.style.display = 'none';
+            stopBlinkAnimation();
+            
             // プレビューを更新
             updateInputPreviewFromImageData();
             
-            // 色チェックを再実行
+            // 色チェックを再実行（非同期だが、checkColors内でinvalidPixelsが更新される）
             checkColorsFromImageData();
             
             updateEditButtons();
@@ -1242,7 +1305,7 @@
             // 64x64の場合は何もしない
             if (width === 64) return;
             
-            // 編集履歴に現在の状態を保存
+            // 編集履歴に現在の状態を保存（修正前の状態）
             saveToHistory();
             
             // 128x64の場合: (64,0)にコピー
@@ -1279,6 +1342,9 @@
                 }
             }
             
+            // 編集履歴に修正後の状態を保存（Redo用）
+            saveToHistory();
+            
             // プレビューを更新
             updateInputPreviewFromImageData();
             
@@ -1300,7 +1366,7 @@
             const width = currentImageData.width;
             const height = currentImageData.height;
             
-            // 編集履歴に現在の状態を保存
+            // 編集履歴に現在の状態を保存（修正前の状態）
             saveToHistory();
             
             // 各64x64領域を左右反転
@@ -1324,6 +1390,9 @@
                     }
                 }
             }
+            
+            // 編集履歴に修正後の状態を保存（Redo用）
+            saveToHistory();
             
             // プレビューを更新
             updateInputPreviewFromImageData();
