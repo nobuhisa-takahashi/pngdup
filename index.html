@@ -332,6 +332,14 @@
                                 <li>192x64: (64,0), (128,0)にコピー</li>
                             </ul>
                         </li>
+                        <li><strong>左右反転:</strong> 各64x64領域を左右反転
+                            <ul>
+                                <li>64x64: 全体を左右反転</li>
+                                <li>128x64: (0,0)から64x64と(64,0)から64x64の両方を左右反転</li>
+                                <li>192x64: (0,0)から64x64、(64,0)から64x64、(128,0)から64x64の全てを左右反転</li>
+                                <li>編集履歴に保存されるため、Undo/Redoで取り消し・再実行が可能</li>
+                            </ul>
+                        </li>
                         <li><strong>指定色変更:</strong> カラーピッカーまたはHEX入力で指定色を変更可能（HEX入力がデフォルト表示、自動的に色チェックを再実行）</li>
                         <li><strong>作成:</strong> 変換後の画像をプレビュー表示</li>
                         <li><strong>保存:</strong> 変換後の画像をローカルに保存</li>
@@ -409,6 +417,7 @@
                 <button id="undoButton" disabled>Undo</button>
                 <button id="redoButton" disabled>Redo</button>
                 <button id="copyPatternButton" disabled>パターンコピー</button>
+                <button id="flipHorizontalButton" disabled>左右反転</button>
             </div>
             <div class="input-preview" id="inputPreview"></div>
             <p style="font-size: 12px; color: #666; margin-top: 10px;">
@@ -458,6 +467,7 @@
         const fixToForegroundButton = document.getElementById('fixToForegroundButton');
         const fixToBackgroundButton = document.getElementById('fixToBackgroundButton');
         const copyPatternButton = document.getElementById('copyPatternButton');
+        const flipHorizontalButton = document.getElementById('flipHorizontalButton');
 
         let inputImage = null;
         let originalImageData = null; // 元画像のImageData（リセット用）
@@ -573,6 +583,8 @@
             resetButton.disabled = false;
             // パターンコピーボタンの有効/無効を設定
             copyPatternButton.disabled = (img.width === 64);
+            // 左右反転ボタンを有効化
+            flipHorizontalButton.disabled = false;
         }
 
         let blinkAnimationId = null;
@@ -1279,6 +1291,52 @@
         // パターンコピーボタンのイベントリスナー
         copyPatternButton.addEventListener('click', () => {
             copyPattern();
+        });
+
+        // 左右反転機能
+        function flipHorizontal() {
+            if (!currentImageData) return;
+            
+            const width = currentImageData.width;
+            const height = currentImageData.height;
+            
+            // 編集履歴に現在の状態を保存
+            saveToHistory();
+            
+            // 各64x64領域を左右反転
+            const segmentCount = Math.floor(width / 64);
+            for (let seg = 0; seg < segmentCount; seg++) {
+                const startX = seg * 64;
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < 32; x++) { // 半分まで反転
+                        const leftX = startX + x;
+                        const rightX = startX + (63 - x);
+                        
+                        const leftIdx = (y * width + leftX) * 4;
+                        const rightIdx = (y * width + rightX) * 4;
+                        
+                        // RGBAの4つの値を交換
+                        for (let i = 0; i < 4; i++) {
+                            const temp = currentImageData.data[leftIdx + i];
+                            currentImageData.data[leftIdx + i] = currentImageData.data[rightIdx + i];
+                            currentImageData.data[rightIdx + i] = temp;
+                        }
+                    }
+                }
+            }
+            
+            // プレビューを更新
+            updateInputPreviewFromImageData();
+            
+            // 色チェックを再実行
+            checkColorsFromImageData();
+            
+            updateEditButtons();
+        }
+
+        // 左右反転ボタンのイベントリスナー
+        flipHorizontalButton.addEventListener('click', () => {
+            flipHorizontal();
         });
     </script>
 </body>
